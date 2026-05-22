@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clustershell-extra-tests"
+version = "0.1.0"
+description = "Supplementary unit and coverage tests for ClusterShell, focused on hard-to-reach paths in Worker/Tree.py"
+readme = "README.md"
+license = { text = "LGPL-2.1-or-later" }
+requires-python = ">=3.7"
+authors = [
+    { name = "Stephane Thiell", email = "sthiell@stanford.edu" },
+]
+keywords = ["clustershell", "testing", "coverage", "hpc"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Clustering",
+]
+dependencies = [
+    "ClusterShell>=1.9",
+    "pytest>=7",
+]
+
+[project.optional-dependencies]
+coverage = [
+    "coverage>=7",
+    "pytest-cov>=4",
+]
+
+[project.urls]
+Homepage = "https://github.com/thiell/clustershell-extra-tests"
+Issues = "https://github.com/thiell/clustershell-extra-tests/issues"
+"ClusterShell upstream" = "https://github.com/clustershell/clustershell"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra"

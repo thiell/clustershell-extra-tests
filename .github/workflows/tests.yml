@@ -1,0 +1,55 @@
+name: tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  schedule:
+    # Daily canary against ClusterShell master.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    name: pytest (py${{ matrix.python-version }}, ClusterShell ${{ matrix.clustershell }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        clustershell: [pypi]
+        include:
+          # Canary: latest Python against upstream master.
+          - python-version: '3.13'
+            clustershell: master
+          # Canary: latest Python against thiell's PEP 706 branch
+          # (covers tests/tree/test_extractall_filter.py until merged).
+          - python-version: '3.13'
+            clustershell: thiell-pep706
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ matrix.clustershell }}" = "master" ]; then
+            pip install "ClusterShell @ git+https://github.com/clustershell/clustershell.git@master"
+            pip install pytest pytest-cov coverage
+          elif [ "${{ matrix.clustershell }}" = "thiell-pep706" ]; then
+            pip install "ClusterShell @ git+https://github.com/thiell/clustershell.git@fix/tree-extractall-pep706"
+            pip install pytest pytest-cov coverage
+          else
+            pip install -r requirements.txt
+          fi
+
+      - name: Show ClusterShell version
+        run: python -c "import ClusterShell; print(ClusterShell.__version__)"
+
+      - name: Run pytest with coverage
+        run: pytest --cov=ClusterShell.Worker.Tree --cov-report=term-missing

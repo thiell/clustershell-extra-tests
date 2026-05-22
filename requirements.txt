@@ -1,0 +1,14 @@
+# Runtime dependencies for clustershell-extra-tests.
+#
+# ClusterShell pulls from PyPI by default. To exercise the tests against
+# upstream master, replace the line below with:
+#
+#   ClusterShell @ git+https://github.com/clustershell/clustershell.git@master
+#
+# Some tests (e.g. tests/tree/test_extractall_filter.py) require commits
+# more recent than the latest PyPI release; see README "Compatibility".
+
+ClusterShell>=1.9
+pytest>=7
+coverage>=7
+pytest-cov>=4
