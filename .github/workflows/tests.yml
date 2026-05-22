@@ -58,3 +58,69 @@ jobs:
 
       - name: Run pytest with coverage
         run: pytest --cov=ClusterShell.Worker.Tree --cov-report=term-missing
+
+  combined:
+    name: combined coverage (upstream TreeWorkerTest + this repo)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out this repo
+        uses: actions/checkout@v4
+        with:
+          path: extra-tests
+
+      - name: Check out clustershell at master
+        uses: actions/checkout@v4
+        with:
+          repository: clustershell/clustershell
+          ref: master
+          path: clustershell
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install ClusterShell from the checkout + test deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install ./clustershell
+          pip install pytest pytest-cov coverage
+
+      # parallel-mode writes .coverage.<host>.<pid>.<rand> so the two
+      # runs don't clobber each other before `coverage combine`.
+
+      - name: Run upstream TreeWorkerTest.py under coverage
+        working-directory: clustershell
+        run: |
+          set -euxo pipefail
+          coverage run --parallel-mode --branch \
+            --source=ClusterShell.Worker.Tree \
+            -m unittest discover -v -s tests -p 'TreeWorkerTest.py' -t .
+
+      - name: Run this repo's tests under coverage
+        working-directory: extra-tests
+        run: |
+          set -euxo pipefail
+          coverage run --parallel-mode --branch \
+            --source=ClusterShell.Worker.Tree \
+            -m pytest
+
+      - name: Combine and report coverage
+        working-directory: extra-tests
+        run: |
+          set -euxo pipefail
+          # Pull in upstream's .coverage.* shards alongside our own.
+          cp ../clustershell/.coverage.* .
+          coverage combine
+          coverage report -m
+          coverage xml -o coverage.xml
+
+      - name: Enforce 100% combined coverage on Tree.py
+        working-directory: extra-tests
+        run: coverage report --fail-under=100
+
+      - name: Upload coverage XML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-coverage
+          path: extra-tests/coverage.xml

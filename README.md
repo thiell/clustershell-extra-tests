@@ -24,10 +24,12 @@ different angle:
   methods directly with controlled inputs.
 - **Targeted at branch coverage.** Each test file is scoped to one
   method or a tightly related pair, so the test suite reads as a
-  spec for "what should this method do in each branch". Combined with
-  the upstream test suite, the two together drive `Worker/Tree.py`
-  to 100% line and branch coverage; on its own this project's suite
-  hits the branches upstream doesn't reach.
+  spec for "what should this method do in each branch". On its own
+  this project's suite reaches ~77% of `Worker/Tree.py`; combined
+  with upstream's `tests/TreeWorkerTest.py` it hits **100% line and
+  branch coverage** (verified by the `combined` job in
+  [`.github/workflows/tests.yml`](.github/workflows/tests.yml), which
+  fails the build if combined coverage drops below 100%).
 - **Surfaces latent bugs.** While driving Tree.py to full coverage
   we noticed several genuine bugs. They are catalogued in
   [`docs/findings.md`](docs/findings.md) and link back to the
@@ -57,6 +59,22 @@ To run the integration tests (require SSH set up to 127.0.0.6 →
 
 ```bash
 pytest -m integration
+```
+
+To reproduce the 100% combined-coverage run that CI performs:
+
+```bash
+# In a sibling checkout of clustershell/clustershell (any commit with PR #594):
+cd ../clustershell
+coverage run --parallel-mode --branch --source=ClusterShell.Worker.Tree \
+    -m unittest discover -s tests -p 'TreeWorkerTest.py' -t .
+
+# Back in this repo:
+cd ../clustershell-extra-tests
+coverage run --parallel-mode --branch --source=ClusterShell.Worker.Tree -m pytest
+cp ../clustershell/.coverage.* .
+coverage combine
+coverage report -m            # expect: 322 / 0 missing / 100%
 ```
 
 ## Compatibility
