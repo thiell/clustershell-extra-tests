@@ -86,6 +86,39 @@ jobs:
           pip install ./clustershell
           pip install pytest pytest-cov coverage
 
+      # Mirror upstream's CI SSH setup so TreeWorkerTest.py's
+      # _direct / _foreign / _gateway tests can drive workers via real
+      # SSH to localhost / 127.0.0.2. Source: clustershell's own
+      # .github/workflows/nosetests.yml.
+      - name: Allow passwordless SSH to localhost
+        run: |
+          set -euxo pipefail
+          chmod og-rw ~
+          ssh-keygen -f ~/.ssh/id_rsa -N ""
+          cp ~/.ssh/{id_rsa.pub,authorized_keys}
+
+      - name: Avoid ssh "known hosts" warnings
+        run: |
+          set -euxo pipefail
+          printf '%s\n    %s\n    %s\n' 'Host *' 'StrictHostKeyChecking no' 'LogLevel ERROR' >> ~/.ssh/config
+
+      - name: Set Python paths when sshing for gateway tests
+        run: |
+          set -euxo pipefail
+          PYTHON_SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          sed -i "1iexport CLUSTERSHELL_GW_PYTHON_EXECUTABLE=$(which python)" ~/.bashrc
+          sed -i "2iexport PYTHONPATH=\$PYTHONPATH:$PYTHON_SITE_PACKAGES" ~/.bashrc
+          head -3 ~/.bashrc
+          ssh 127.0.0.2 'python -c "import ClusterShell; print(ClusterShell.__file__)"'
+
+      - name: Add clustershell/tests/bin to remote PATH
+        run: |
+          set -euxo pipefail
+          sed -i "1iexport PATH=$GITHUB_WORKSPACE/clustershell/tests/bin:\$PATH" ~/.bashrc
+          head -1 ~/.bashrc
+          ssh 127.0.0.2 which hostname
+          ssh 127.0.0.2 hostname
+
       # parallel-mode writes .coverage.<host>.<pid>.<rand> so the two
       # runs don't clobber each other before `coverage combine`.
 
@@ -93,6 +126,7 @@ jobs:
         working-directory: clustershell
         run: |
           set -euxo pipefail
+          export CLUSTERSHELL_GW_PYTHON_EXECUTABLE=$(which python)
           coverage run --parallel-mode --branch \
             --source=ClusterShell.Worker.Tree \
             -m unittest discover -v -s tests -p 'TreeWorkerTest.py' -t .
