@@ -17,14 +17,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-        clustershell: [pypi]
+        # ClusterShell PyPI 1.9.3 predates the #594 / PEP 706 work the
+        # tests pin, so the default install path is upstream master.
+        # When ClusterShell 1.9.4 (or later) ships with #594, add a
+        # 'pypi' entry to this matrix.
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        clustershell: [master]
         include:
-          # Canary: latest Python against upstream master.
-          - python-version: '3.13'
-            clustershell: master
           # Canary: latest Python against thiell's PEP 706 branch
-          # (covers tests/tree/test_extractall_filter.py until merged).
+          # (lets tests/tree/test_extractall_filter.py actually execute
+          # until the PEP 706 fix lands upstream).
           - python-version: '3.13'
             clustershell: thiell-pep706
     steps:
@@ -38,15 +40,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ "${{ matrix.clustershell }}" = "master" ]; then
-            pip install "ClusterShell @ git+https://github.com/clustershell/clustershell.git@master"
-            pip install pytest pytest-cov coverage
-          elif [ "${{ matrix.clustershell }}" = "thiell-pep706" ]; then
-            pip install "ClusterShell @ git+https://github.com/thiell/clustershell.git@fix/tree-extractall-pep706"
-            pip install pytest pytest-cov coverage
-          else
-            pip install -r requirements.txt
-          fi
+          case "${{ matrix.clustershell }}" in
+            master)
+              pip install "ClusterShell @ git+https://github.com/clustershell/clustershell.git@master"
+              ;;
+            thiell-pep706)
+              pip install "ClusterShell @ git+https://github.com/thiell/clustershell.git@fix/tree-extractall-pep706"
+              ;;
+            pypi)
+              pip install "ClusterShell>=1.9"
+              ;;
+          esac
+          pip install pytest pytest-cov coverage
 
       - name: Show ClusterShell version
         run: python -c "import ClusterShell; print(ClusterShell.__version__)"

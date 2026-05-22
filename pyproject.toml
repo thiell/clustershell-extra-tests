@@ -43,4 +43,10 @@ Issues = "https://github.com/thiell/clustershell-extra-tests/issues"
 minversion = "7.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-ra"
+# Default run skips integration tests (require SSH + a gw2f1 topology;
+# see scripts/setup_env_root.sh). Run them explicitly with
+# `pytest -m integration` after that script has been applied.
+addopts = "-ra -m 'not integration'"
+markers = [
+    "integration: requires live SSH and a gw2f1 propagation topology (see scripts/setup_env_root.sh)",
+]

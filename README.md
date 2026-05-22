@@ -52,22 +52,27 @@ To run with coverage on `Worker/Tree.py`:
 pytest --cov=ClusterShell.Worker.Tree --cov-report=term-missing
 ```
 
-## Compatibility
-
-The fixtures and tests target ClusterShell's tree-propagation code,
-which is reasonably stable. However, some individual tests pin
-behavior that only exists on recent commits:
-
-| Test | Requires |
-|------|----------|
-| `tests/tree/test_extractall_filter.py` | ClusterShell with the PEP 706 tarfile fix (in-flight upstream; on `thiell/clustershell@fix/tree-extractall-pep706`) |
-
-If you want to exercise the canary path against upstream master:
+To run the integration tests (require SSH set up to 127.0.0.6 →
+127.0.0.[2-3]; see [`scripts/setup_env_root.sh`](scripts/setup_env_root.sh)):
 
 ```bash
-pip install --upgrade "ClusterShell @ git+https://github.com/clustershell/clustershell.git@master"
-pytest
+pytest -m integration
 ```
+
+## Compatibility
+
+The fixtures and tests target ClusterShell's tree-propagation code.
+Specific commit dependencies:
+
+| Test surface | Requires |
+|---|---|
+| Most unit tests under `tests/tree/` | ClusterShell with PR #594 (commit `9e688cc`), on upstream master but not yet in PyPI 1.9.3 |
+| `tests/tree/test_extractall_filter.py` | ClusterShell with the PEP 706 tarfile fix (on `thiell/clustershell@fix/tree-extractall-pep706`); auto-skipped on installs that lack `Tree._TAR_EXTRACT_KWARGS` |
+| Tests marked `@pytest.mark.integration` | Live SSH + a gw2f1 propagation topology; excluded from default `pytest` runs |
+
+When ClusterShell ships a release containing PR #594, the
+`requirements.txt` pin will move back to `ClusterShell>=1.9.4` and
+the master-only quick-start step goes away.
 
 ## What's tested today
 

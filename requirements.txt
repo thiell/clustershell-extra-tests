@@ -1,14 +1,14 @@
 # Runtime dependencies for clustershell-extra-tests.
 #
-# ClusterShell pulls from PyPI by default. To exercise the tests against
-# upstream master, replace the line below with:
+# Pinned to ClusterShell upstream master because the tests rely on
+# PR #594 (commit 9e688cc) and (for test_extractall_filter.py) the
+# PEP 706 fix from thiell/clustershell@fix/tree-extractall-pep706,
+# neither of which is in PyPI 1.9.3.
 #
-#   ClusterShell @ git+https://github.com/clustershell/clustershell.git@master
-#
-# Some tests (e.g. tests/tree/test_extractall_filter.py) require commits
-# more recent than the latest PyPI release; see README "Compatibility".
+# When ClusterShell 1.9.4 (or later) ships with those changes,
+# this can be flipped back to `ClusterShell>=1.9.4`.
 
-ClusterShell>=1.9
+ClusterShell @ git+https://github.com/clustershell/clustershell.git@master
 pytest>=7
 coverage>=7
 pytest-cov>=4

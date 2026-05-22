@@ -38,12 +38,18 @@ import socket
 import unittest
 from collections import Counter
 
+import pytest
+
 from ClusterShell.Event import EventHandler
 from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import task_self, task_terminate
 from ClusterShell.Topology import TopologyGraph
 from ClusterShell.Worker import Tree as TreeMod
 
+# Requires SSH set up between the runner and 127.0.0.6 -> 127.0.0.[2-3]
+# (see scripts/setup_env_root.sh). Excluded from default CI runs; run
+# locally with `pytest -m integration`.
+pytestmark = pytest.mark.integration
 
 HOSTNAME = socket.gethostname().split('.', 1)[0]
 NODE_GATEWAY2F1 = '127.0.0.6,192.0.2.0'   # one ok, one unreachable
