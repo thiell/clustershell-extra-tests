@@ -235,11 +235,13 @@ tmptar.extractall(path=self.dest, filter='data')
 — the secure default. `filter='tar'` is the literal-tar-format
 behavior if a user needs the old semantics. Either is forward-compatible.
 
-**Status**: fix shipped as `filter='tar'` with feature-detection in
-[thiell/clustershell@25fc181](https://github.com/thiell/clustershell/commit/25fc181)
-on branch `fix/tree-extractall-pep706` (2026-05-22). Upstream PR pending.
-The matching regression test in this repo is
-`tests/tree/test_extractall_filter.py`.
+**Status**: fix shipped as `filter='fully_trusted'` with feature-detection in
+[thiell/clustershell@c4bcb86](https://github.com/thiell/clustershell/commit/c4bcb86)
+on branch `fix/tree-extractall-pep706` (2026-05-22). `'fully_trusted'` was
+chosen over `'tar'`/`'data'` because tarballs are produced by trusted
+ClusterShell gateways and the secure filters would strip S_IWGRP|S_IWOTH
+(downgrading e.g. 0664 to 0644). Upstream PR pending. The matching
+regression test in this repo is `tests/tree/test_extractall_filter.py`.
 
 ---
 

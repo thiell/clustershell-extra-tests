@@ -1,7 +1,12 @@
 """
-PEP 706: TreeWorker.rcopy must forward filter='tar' to tarfile.extractall
-when the runtime supports it, and must omit the kwarg otherwise (so Python
-2.7 and pre-backport 3.x patch releases don't crash with TypeError).
+PEP 706: TreeWorker.rcopy must forward filter='fully_trusted' to
+tarfile.extractall when the runtime supports it, and must omit the kwarg
+otherwise (so Python 2.7 and pre-backport 3.x patch releases don't crash
+with TypeError).
+
+'fully_trusted' is the deliberate choice over 'tar'/'data' because tarballs
+are produced by trusted ClusterShell gateways and the secure filters would
+strip S_IWGRP|S_IWOTH (downgrading e.g. 0664 to 0644).
 
 Detection is via tarfile.data_filter (added in the same gh-104012 patchset
 as the filter= kwarg).
@@ -71,13 +76,13 @@ def _drive_rcopy_close(monkeypatch, make_worker, fake_task, kwargs_override):
 
 
 def test_extractall_forwards_filter_data(monkeypatch, make_worker, fake_task):
-    """On a runtime with tarfile.data_filter, extractall must get filter='tar'."""
+    """On a runtime with tarfile.data_filter, extractall must get filter='fully_trusted'."""
     fake_tar = _drive_rcopy_close(monkeypatch, make_worker, fake_task,
-                                  kwargs_override={'filter': 'tar'})
+                                  kwargs_override={'filter': 'fully_trusted'})
 
     assert len(fake_tar.extractall_calls) == 1
     assert fake_tar.extractall_calls[0].get('path') == '/dst'
-    assert fake_tar.extractall_calls[0].get('filter') == 'tar'
+    assert fake_tar.extractall_calls[0].get('filter') == 'fully_trusted'
     assert fake_tar.closed
 
 
@@ -96,6 +101,6 @@ def test_extractall_omits_kwarg_on_legacy_python(monkeypatch, make_worker,
 def test_module_constant_matches_runtime_capability():
     """_TAR_EXTRACT_KWARGS is wired to tarfile.data_filter availability."""
     if hasattr(tarfile, 'data_filter'):
-        assert tree_mod._TAR_EXTRACT_KWARGS == {'filter': 'tar'}
+        assert tree_mod._TAR_EXTRACT_KWARGS == {'filter': 'fully_trusted'}
     else:
         assert tree_mod._TAR_EXTRACT_KWARGS == {}

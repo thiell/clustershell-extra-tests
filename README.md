@@ -102,7 +102,7 @@ All tests live under [`tests/tree/`](tests/tree/). One sentence per file:
 | `test_check_fini_unit.py` | `_check_fini` event-emission ordering at worker close |
 | `test_emit_pickup_at_most_once.py` | the no-double-pickup invariant under reroute (mutation-testable, see findings.md) |
 | `test_emit_pickup_unit.py` | direct-call coverage of `_emit_pickup` branches |
-| `test_extractall_filter.py` | PEP 706: rcopy passes `filter='tar'` on supporting Pythons, omits the kwarg on legacy |
+| `test_extractall_filter.py` | PEP 706: rcopy passes `filter='fully_trusted'` on supporting Pythons, omits the kwarg on legacy |
 | `test_gateway_abort.py` | `_gateway_abort` reroute and final-failure paths |
 | `test_init_topology.py` | TreeWorker `__init__` topology-resolution branches |
 | `test_launch_branches.py` | `_launch` for remote/local, with/without source |
