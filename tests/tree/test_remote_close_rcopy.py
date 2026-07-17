@@ -1,15 +1,17 @@
 """
 Direct unit tests for TreeWorker._on_remote_node_close rcopy paths
-(lines 474-476, 484-485, 491).
+(lines 465-468, 478-480, 482, 487).
 
 When the worker is doing rcopy (reverse copy: source AND reverse=True),
 _on_remote_node_close finalizes by extracting the tar that the remote
-streamed back. Three uncovered edge cases:
+streamed back. Edge cases covered here:
 
-  - 474-476: trailing buffer non-empty (`if len(buf) > 0:` True)
-  - 484-485: tarfile.extractall raises IOError -> dispatch as stderr
-             via msgline
-  - 491:     no buffer ever received from this node (else branch)
+  - 465-468: trailing buffer non-empty (`if len(buf) > 0:` True)
+  - 478-480: tarfile.extractall raises IOError -> error message
+             dispatched as stderr via msgline
+  - 482:     tarfile.open itself fails (TarError) -> tmptar stays None
+             so the finally block skips close()
+  - 487:     no buffer ever received from this node (else branch)
 """
 
 import tarfile
@@ -48,7 +50,7 @@ def _setup_rcopy_worker(make_worker, tmp_path):
 
 
 def test_remote_close_rcopy_no_buffer_received_logs_else(make_worker, tmp_path):
-    """Hits line 491: node closes but no rcopy data was ever received
+    """Hits line 487: node closes but no rcopy data was ever received
     for it. The `else` branch logs a debug and the function continues."""
     w = _setup_rcopy_worker(make_worker, tmp_path)
     # _rcopy_bufs is empty for node1 -> hits the else branch
@@ -63,7 +65,7 @@ def test_remote_close_rcopy_no_buffer_received_logs_else(make_worker, tmp_path):
 
 
 def test_remote_close_rcopy_partial_buffer_is_flushed(make_worker, tmp_path):
-    """Hits lines 474-476: when _rcopy_bufs has trailing bytes left
+    """Hits lines 465-468: when _rcopy_bufs has trailing bytes left
     over at close time, they are written to the tarfile object before
     extraction."""
     w = _setup_rcopy_worker(make_worker, tmp_path)
@@ -85,10 +87,10 @@ def test_remote_close_rcopy_partial_buffer_is_flushed(make_worker, tmp_path):
 def test_remote_close_rcopy_ioerror_in_extract_routed_to_stderr(make_worker, tmp_path,
                                                                  recording_handler,
                                                                  monkeypatch):
-    """Hits lines 484-485: tmptar.extractall raises IOError -> the
-    exception is routed back as a stderr msgline (so the handler sees
-    it as 'stderr' output from the failing node) rather than crashing
-    the worker."""
+    """Hits lines 478-480: tmptar.extractall raises IOError -> the
+    error message is routed back as a stderr msgline (so the handler
+    sees it as 'stderr' output from the failing node) rather than
+    crashing the worker."""
     # We need a handler to actually OBSERVE that the stderr msg fired.
     w = make_worker(
         nodes='node1',
@@ -112,8 +114,6 @@ def test_remote_close_rcopy_ioerror_in_extract_routed_to_stderr(make_worker, tmp
     fake_tar.getmembers.return_value = []
     fake_tar.extractall.side_effect = IOError('simulated extract failure')
 
-    real_open = tarfile.open
-
     def open_capturing(fileobj=None, **kwargs):
         # Return our fake tar regardless of args.
         return fake_tar
@@ -132,5 +132,40 @@ def test_remote_close_rcopy_ioerror_in_extract_routed_to_stderr(make_worker, tmp
     # Look for a stderr entry in recording_handler's ev_read calls.
     stderr_reads = [c for c in recording_handler.ev_read_calls if c[1] == 'stderr']
     assert len(stderr_reads) == 1
-    # the message body is the IOError instance (verbatim, not stringified)
-    assert isinstance(stderr_reads[0][2], IOError)
+    # the message body is the stringified error encoded as bytes (#663)
+    assert stderr_reads[0][2] == b'simulated extract failure'
+
+
+def test_remote_close_rcopy_open_error_routed_to_stderr(make_worker, tmp_path,
+                                                        recording_handler):
+    """Hits line 482 False branch: tarfile.open fails on a corrupt tar
+    payload (TarError), the error is routed as a stderr msgline, and
+    tmptar stays None so the finally block skips close()."""
+    w = make_worker(
+        nodes='node1',
+        handler=recording_handler,
+        command=None,
+        source=str(tmp_path / "missing-src"),  # path used only as label
+        dest=str(tmp_path / "dest"),
+        reverse=True,
+    )
+    w.gwtargets['gw1'] = {'node1'}
+    w._target_count = 1
+
+    # garbage payload: tarfile.open raises ReadError (a TarError)
+    tarfile_obj = tempfile.TemporaryFile()
+    tarfile_obj.write(b'this is not a tar archive')
+    w._rcopy_tars['node1'] = tarfile_obj
+    w._rcopy_bufs['node1'] = b''
+
+    # Must not raise: TarError is caught and re-dispatched as stderr.
+    w._on_remote_node_close('node1', 0, 'gw1')
+
+    stderr_reads = [c for c in recording_handler.ev_read_calls if c[1] == 'stderr']
+    assert len(stderr_reads) == 1
+    assert isinstance(stderr_reads[0][2], bytes)
+
+    # rcopy state for the node was cleaned up despite the open failure
+    assert 'node1' not in w._rcopy_bufs
+    assert 'node1' not in w._rcopy_tars
+    assert 'gw1' not in w.gwtargets
