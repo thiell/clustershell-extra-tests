@@ -1,12 +1,8 @@
 # Runtime dependencies for clustershell-extra-tests.
 #
-# Pinned to ClusterShell upstream master because the tests rely on
-# PR #594 (commit 9e688cc) and (for test_extractall_filter.py) the
-# PEP 706 fix from thiell/clustershell@fix/tree-extractall-pep706,
-# neither of which is in PyPI 1.9.3.
-#
-# When ClusterShell 1.9.4 (or later) ships with those changes,
-# this can be flipped back to `ClusterShell>=1.9.4`.
+# Pinned to ClusterShell upstream master: this repo is a canary that
+# tracks master's Worker/Tree.py (the tests follow behavior changes
+# like #594, the PEP 706 filter, and #663 as they land).
 
 ClusterShell @ git+https://github.com/clustershell/clustershell.git@master
 pytest>=7

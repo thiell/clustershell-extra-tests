@@ -23,12 +23,6 @@ jobs:
         # 'pypi' entry to this matrix.
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         clustershell: [master]
-        include:
-          # Canary: latest Python against thiell's PEP 706 branch
-          # (lets tests/tree/test_extractall_filter.py actually execute
-          # until the PEP 706 fix lands upstream).
-          - python-version: '3.13'
-            clustershell: thiell-pep706
     steps:
       - uses: actions/checkout@v4
 
@@ -43,9 +37,6 @@ jobs:
           case "${{ matrix.clustershell }}" in
             master)
               pip install "ClusterShell @ git+https://github.com/clustershell/clustershell.git@master"
-              ;;
-            thiell-pep706)
-              pip install "ClusterShell @ git+https://github.com/thiell/clustershell.git@fix/tree-extractall-pep706"
               ;;
             pypi)
               pip install "ClusterShell>=1.9"

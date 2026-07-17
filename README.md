@@ -84,13 +84,14 @@ Specific commit dependencies:
 
 | Test surface | Requires |
 |---|---|
-| Most unit tests under `tests/tree/` | ClusterShell with PR #594 (commit `9e688cc`), on upstream master but not yet in PyPI 1.9.3 |
-| `tests/tree/test_extractall_filter.py` | ClusterShell with the PEP 706 tarfile fix (on `thiell/clustershell@fix/tree-extractall-pep706`); auto-skipped on installs that lack `Tree._TAR_EXTRACT_KWARGS` |
+| Most unit tests under `tests/tree/` | ClusterShell with PR #594 (in 1.10+) |
+| `tests/tree/test_extractall_filter.py` | ClusterShell with the PEP 706 tarfile fix (in 1.10+); auto-skipped on installs that lack `Tree._TAR_EXTRACT_KWARGS` |
+| `tests/tree/test_remote_close_rcopy.py` | ClusterShell with the #663 rcopy error-reporting fix (in 1.10.1+) |
 | Tests marked `@pytest.mark.integration` | Live SSH + a gw2f1 propagation topology; excluded from default `pytest` runs |
 
-When ClusterShell ships a release containing PR #594, the
-`requirements.txt` pin will move back to `ClusterShell>=1.9.4` and
-the master-only quick-start step goes away.
+This repo intentionally stays pinned to upstream master (daily canary);
+the table above documents the minimum release for running against a
+PyPI install instead.
 
 ## What's tested today
 
