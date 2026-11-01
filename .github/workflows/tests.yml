@@ -13,7 +13,7 @@ on:
 jobs:
   pytest:
     name: pytest (py${{ matrix.python-version }}, ClusterShell ${{ matrix.clustershell }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,6 +23,12 @@ jobs:
         # 'pypi' entry to this matrix.
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         clustershell: [master]
+        # setup-python has no 3.8/3.9 builds for Ubuntu 26.04 (ubuntu-latest)
+        include:
+          - python-version: '3.8'
+            os: ubuntu-24.04
+          - python-version: '3.9'
+            os: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
